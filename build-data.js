@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 const parseCSV = (payload) => {
-  const rows = payload.split('\n');
+  const rows = payload.trim().split('\n');
 
   return rows.map((row) => {
     const rowData = [];
@@ -46,12 +46,21 @@ const openFile = async (filePath) => {
 const getData = async () => {
   const dataPath = path.join(process.cwd(), 'raw_data.csv');
   const data = await openFile(dataPath);
-  const parsedData = parseCSV(data).map(([lastName, firstName, table], idx) => ({
-    id: idx,
-    lastName,
-    firstName,
-    table: !table.toLowerCase().includes('head') ? parseInt(table.replace(/Table/i, '').trim()) : 0,
-  }));
+  const parsedData = parseCSV(data).map(([lastName, firstName, table], idx) => {
+    try {
+      return {
+        id: idx,
+        lastName,
+        firstName,
+        table: !table.toLowerCase().includes('head')
+          ? parseInt(table.replace(/Table/i, '').trim())
+          : 0,
+      };
+    } catch (e) {
+      console.log(`Error on line ${idx}`, e);
+      throw e;
+    }
+  });
   fs.writeFileSync(
     path.join(process.cwd(), 'src', 'data.json'),
     JSON.stringify(parsedData, null, 2),
